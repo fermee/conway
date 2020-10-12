@@ -15,6 +15,14 @@
   border-style: solid;
 }
 
+.green {
+  background-color: green;
+  height: 20px;
+  width: 20px;
+  font-size: 10px;
+  border-style: solid;
+}
+
 .blue {
   background-color: blue;
   height: 20px;
