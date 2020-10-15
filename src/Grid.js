@@ -3,7 +3,10 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 function Cell(props) {
   let color = props.theMatrix[props.rowid][props.cellid];
   // console.log(`ROW: ${props.rowid} COL:${props.cellid}: color ${color}`);
-  if (props.pos[0] === props.rowid && props.cellid === props.pos[1]) {
+
+  console.log(`Cell: ${props.xpos} ${props.ypos}`);
+
+  if (props.ypos === props.rowid && props.cellid === props.xpos) {
     color = "green";
   }
 
@@ -43,7 +46,8 @@ function GridRow(props) {
           cellid={idx[1]}
           onCellClick={props.onCellClick}
           theMatrix={props.theMatrix}
-          pos={props.pos}
+          xpos={props.xpos}
+          ypos={props.ypos}
         >
           {idx[0]}
         </Cell>
@@ -52,45 +56,21 @@ function GridRow(props) {
   );
 }
 
-function InitMatrix(rows, cols, style) {
-  // style is a CSS class, typically "red", "blue"
 
-  let initMatrix = [];
 
-  // create rows and start 'the matrix'
-  for (let r = 0; r < rows; r++) {
-    initMatrix.push([]);
-    for (let c = 0; c < cols; c++) {
-      // inital color=blue
-      initMatrix[r].push(style);
-    }
-  }
-  return initMatrix;
-}
 
-function ZeroInit(clmat, rows, cols) {
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      clmat[i][j] = "blue";
-    }
-  }
-  return clmat;
-}
 // Create a grid of "#rows" rows... * #cells cells
 export default function Grid(props) {
   // this is a callback for all the cells (triggered from onClick on a cell)...
   function onCellClicked(row, cell) {
     // create a clone (don't forget this or render won't work and you're changing original state)!
     let newMatrix = [...matrix];
-
-    newMatrix[pos[0]][pos[1]] = "blue";
-    let newpos = pos;
-
-    // newpos=[row,cell] // does not fully work,
+    console.log(`onCellClick: ${row} ${cell}`);
+    newMatrix[row][cell] = "red";
+    
     // a render from another event resets the state to the previous position!
-    newpos[0] = row;
-    newpos[1] = cell;
-    setPos(newpos);
+    setXPos(cell);
+    setYPos(row);
 
     /*
     newMatrix[row][cell] === "red"
@@ -100,6 +80,37 @@ export default function Grid(props) {
 
     setMatrix(newMatrix);
   }
+
+  function Move() {
+    console.log("Move It!");
+
+    let direction = Math.floor(Math.random() * 4);
+    switch (direction) {
+      case 0:
+        PosUp();
+        break;
+      case 1:
+        PosDown();
+        break;
+      case 2:
+        PosLeft();
+        break;
+      case 3:
+        PosRight();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /*
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Move();
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+*/
 
   const cbCellClicked = useCallback(
     (row, cell) => onCellClicked(row, cell),
@@ -112,12 +123,25 @@ export default function Grid(props) {
   const GoLeft = useKeyPress("j", PosLeft);
   const GoRight = useKeyPress("k", PosRight);
 
+  // the field...
+  const initMatrix = InitMatrix(props.rows, props.cells, "blue") ;
+
+  function InitMatrix(rows, cols, style) {
+
+    // create rows and start 'the matrix'
+    for (let r = 0; r < rows; r++) {
+      initMatrix.push([]);
+      for (let c = 0; c < cols; c++) {
+        // inital color=blue
+        initMatrix[r].push(style);
+      }
+    }
+  }
+  
+
   function ClearMatrix() {
     console.log("state in ClearMatrix event handler:");
-    let clmat = [...matrix];
-    clmat = ZeroInit(clmat, matrix.length, matrix[0].length);
-
-    setMatrix(clmat);
+    setMatrix(initMatrix);
   }
 
   function useKeyPress(key, action) {
@@ -131,46 +155,34 @@ export default function Grid(props) {
   }
 
   function PosUp() {
-    let oldpos = pos;
     let newmatrix = [...matrix];
 
-    newmatrix[oldpos[0]][oldpos[1]] = "red";
-    oldpos[0] = oldpos[0] > 0 ? oldpos[0] - 1 : oldpos[0];
-    setPos(oldpos);
-    newmatrix[oldpos[0]][oldpos[1]] = "green";
+    newmatrix[xpos][ypos] = "red";
     setMatrix(newmatrix);
+    ypos > 0 ? setYPos(ypos - 1) : setYPos(ypos);
   }
 
   function PosDown() {
-    let oldpos = pos;
     let newmatrix = [...matrix];
 
-    newmatrix[oldpos[0]][oldpos[1]] = "red";
-    oldpos[0] = oldpos[0] < matrix.length - 1 ? oldpos[0] + 1 : oldpos[0];
-    setPos(oldpos);
-    newmatrix[oldpos[0]][oldpos[1]] = "green";
+    newmatrix[ypos][xpos] = "red";
     setMatrix(newmatrix);
+    ypos < matrix.length - 1 ? setYPos(ypos + 1) : setYPos(ypos);
   }
 
   function PosLeft() {
-    let oldpos = pos;
     let newmatrix = [...matrix];
-    newmatrix[oldpos[0]][oldpos[1]] = "red";
-    oldpos[1] = oldpos[1] > 0 ? oldpos[1] - 1 : oldpos[1];
-    setPos(oldpos);
-    newmatrix[oldpos[0]][oldpos[1]] = "green";
+
+    newmatrix[ypos][xpos] = "red";
     setMatrix(newmatrix);
+    xpos > 0 ? setXPos(xpos - 1) : setXPos(xpos);
   }
 
   function PosRight() {
-    let oldpos = pos;
     let newmatrix = [...matrix];
-
-    newmatrix[oldpos[0]][oldpos[1]] = "red";
-    oldpos[1] = oldpos[1] < 49 ? oldpos[1] + 1 : oldpos[1];
-    setPos(oldpos);
-    newmatrix[oldpos[0]][oldpos[1]] = "green";
+    newmatrix[ypos][xpos] = "red";
     setMatrix(newmatrix);
+    xpos < 49 ? setXPos(xpos + 1) : setXPos(xpos);
   }
 
   function useTraceUpdate(props) {
@@ -196,11 +208,11 @@ export default function Grid(props) {
     rows.push(r);
   }
 
-  const [matrix, setMatrix] = useState(
-    InitMatrix(props.rows, props.cells, props.cellStyle)
-  );
-
-  const [pos, setPos] = useState([10, 10]);
+  // initial state
+  const [matrix, setMatrix] = useState(initMatrix);
+  
+  const [xpos, setXPos] = useState(5);
+  const [ypos, setYPos] = useState(5);
 
   return (
     <div className="brick-grid" id={props.id} key={props.id}>
@@ -213,7 +225,8 @@ export default function Grid(props) {
           onCellClick={cbCellClicked}
           cells={props.cells}
           theMatrix={matrix}
-          pos={pos}
+          xpos={xpos}
+          ypos={ypos}
         ></GridRow>
       ))}
     </div>
