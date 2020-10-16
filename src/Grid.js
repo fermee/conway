@@ -1,233 +1,112 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 
-function Cell(props) {
-  let color = props.theMatrix[props.rowid][props.cellid];
-  // console.log(`ROW: ${props.rowid} COL:${props.cellid}: color ${color}`);
+const initialXPos = 5;
+const initialYPos = 5;
 
-  console.log(`Cell: ${props.xpos} ${props.ypos}`);
-
-  if (props.ypos === props.rowid && props.cellid === props.xpos) {
-    color = "green";
-  }
-
-  return (
-    <div
-      onClick={(x) => props.onCellClick(props.rowid, props.cellid)}
-      className={color}
-      id={props.id}
-      key={props.id}
-      rowid={props.rowid}
-      cellid={props.cellid}
-    >
-      {props.children}
-    </div>
-  );
-}
-
-// Create a row of "cells" cells
-function GridRow(props) {
-  var cells = [];
-
-  // create cells with  unique cells (id:row-col)
-  for (let c = 0; c < props.cells; c++) {
-    let id = props.row + "-" + c;
-    let cellid = c;
-    let index = [id, cellid];
-    cells.push(index);
-  }
-
-  return (
-    <div className="grid-row" id={props.row} key={props.row}>
-      {cells.map((idx) => (
-        <Cell
-          id={idx[0]}
-          key={idx[0]}
-          rowid={props.row}
-          cellid={idx[1]}
-          onCellClick={props.onCellClick}
-          theMatrix={props.theMatrix}
-          xpos={props.xpos}
-          ypos={props.ypos}
-        >
-          {idx[0]}
-        </Cell>
-      ))}
-    </div>
-  );
-}
-
-
-
-
-// Create a grid of "#rows" rows... * #cells cells
-export default function Grid(props) {
-  // this is a callback for all the cells (triggered from onClick on a cell)...
-  function onCellClicked(row, cell) {
-    // create a clone (don't forget this or render won't work and you're changing original state)!
-    let newMatrix = [...matrix];
-    console.log(`onCellClick: ${row} ${cell}`);
-    newMatrix[row][cell] = "red";
-    
-    // a render from another event resets the state to the previous position!
-    setXPos(cell);
-    setYPos(row);
-
-    /*
-    newMatrix[row][cell] === "red"
-      ? (newMatrix[row][cell] = "blue")
-      : (newMatrix[row][cell] = "red");
-    */
-
-    setMatrix(newMatrix);
-  }
-
-  function Move() {
-    console.log("Move It!");
-
-    let direction = Math.floor(Math.random() * 4);
-    switch (direction) {
-      case 0:
-        PosUp();
-        break;
-      case 1:
-        PosDown();
-        break;
-      case 2:
-        PosLeft();
-        break;
-      case 3:
-        PosRight();
-        break;
-      default:
-        break;
-    }
-  }
-
-  /*
+const useKeyPress = (key, action) => {
   useEffect(() => {
-    const interval = setInterval(() => {
-      Move();
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
-*/
-
-  const cbCellClicked = useCallback(
-    (row, cell) => onCellClicked(row, cell),
-    []
-  );
-
-  const Pressing = useKeyPress("h", ClearMatrix);
-  const GoUp = useKeyPress("i", PosUp);
-  const GoDown = useKeyPress("m", PosDown);
-  const GoLeft = useKeyPress("j", PosLeft);
-  const GoRight = useKeyPress("k", PosRight);
-
-  // the field...
-  const initMatrix = InitMatrix(props.rows, props.cells, "blue") ;
-
-  function InitMatrix(rows, cols, style) {
-
-    // create rows and start 'the matrix'
-    for (let r = 0; r < rows; r++) {
-      initMatrix.push([]);
-      for (let c = 0; c < cols; c++) {
-        // inital color=blue
-        initMatrix[r].push(style);
-      }
+  function onKeyup(e) {
+    if (e.key === key) action();
     }
-  }
+    window.addEventListener("keyup", onKeyup);
+    return () => window.removeEventListener("keyup", onKeyup);
+    }, [key, action]); // important or the state won't update correctly!
+  };
+
+export default function Grid({rows,cols}) {
+
+  const [Pos, setPos] = useState({x: initialXPos, y: initialYPos});
+  const [matrix, setMatrix] = useState([]);
+
+  // only do this when rows/cols change (i.e. only first time)
+  useEffect(() => {
+    const initMatrix = new Array(rows)
+      .fill(0)
+      .map((_, row) =>
+        new Array(cols)
+          .fill(0)
+          .map((_, col) =>
+            col === initialXPos && row === initialYPos ? "red" : "blue"
+          )
+      );
+      setMatrix(initMatrix);
+    }, [rows, cols]);
+
+
+    function moveTo(newX, newY) {
+
+      let newPos={x:newX, y:newY};
+
+      if (newPos.x === Pos.x && newPos.y === Pos.y) return;
+      console.log(`moving to: ${newPos.x}, ${newPos.y}`);
+      // clear current pos
+      let newRow = [...matrix[Pos.y]]; // copy  the row that changed...
+      newRow[Pos.x] = "green";          // set the cell in the row  
+      let newMatrix = [...matrix];     // replace the row in the matrix
+      newMatrix[Pos.y] = newRow;
+
+      // set new pos
+      newRow = [...newMatrix[newPos.y]];
+      newRow[newPos.x] = "red";
+      newMatrix = [...newMatrix];
+      newMatrix[newPos.y] = newRow;
+
+      setPos(newPos);
+      setMatrix(newMatrix);
+    }
   
+  const onClicked = (row,col) => {
+    console.log(`onClicked: ${Pos.x},${Pos.y}`);
+    moveTo(row, col);
+  };
 
-  function ClearMatrix() {
-    console.log("state in ClearMatrix event handler:");
-    setMatrix(initMatrix);
+  useKeyPress("j", () => {
+    if (Pos.x > 0) moveTo(Pos.x - 1, Pos.y);
+  });
+
+  useKeyPress("i", () => {
+    if (Pos.y > 0) moveTo(Pos.x, Pos.y - 1);
+  });
+
+  useKeyPress("k", () => {
+    if (Pos.x < cols - 1) moveTo(Pos.x + 1, Pos.y);
+  });
+
+  useKeyPress("m", () => {
+    if (Pos.y < rows - 1) moveTo(Pos.x, Pos.y + 1);
+  });
+
+  const ClearAll = () => {
+    const cleanMatrix = new Array(rows)
+    .fill(0)
+    .map((_, row) =>
+      new Array(cols)
+        .fill(0)
+        .map((_, col) =>
+          col === Pos.x && row === Pos.y ? "red" : "blue"
+        )
+    );
+    setMatrix(cleanMatrix);
   }
 
-  function useKeyPress(key, action) {
-    useEffect(() => {
-      function onKeyup(e) {
-        if (e.key === key) action();
-      }
-      window.addEventListener("keyup", onKeyup);
-      return () => window.removeEventListener("keyup", onKeyup); // remove listener before re-adding?
-    }, []);
-  }
-
-  function PosUp() {
-    let newmatrix = [...matrix];
-
-    newmatrix[xpos][ypos] = "red";
-    setMatrix(newmatrix);
-    ypos > 0 ? setYPos(ypos - 1) : setYPos(ypos);
-  }
-
-  function PosDown() {
-    let newmatrix = [...matrix];
-
-    newmatrix[ypos][xpos] = "red";
-    setMatrix(newmatrix);
-    ypos < matrix.length - 1 ? setYPos(ypos + 1) : setYPos(ypos);
-  }
-
-  function PosLeft() {
-    let newmatrix = [...matrix];
-
-    newmatrix[ypos][xpos] = "red";
-    setMatrix(newmatrix);
-    xpos > 0 ? setXPos(xpos - 1) : setXPos(xpos);
-  }
-
-  function PosRight() {
-    let newmatrix = [...matrix];
-    newmatrix[ypos][xpos] = "red";
-    setMatrix(newmatrix);
-    xpos < 49 ? setXPos(xpos + 1) : setXPos(xpos);
-  }
-
-  function useTraceUpdate(props) {
-    const prev = useRef(props);
-    useEffect(() => {
-      const changedProps = Object.entries(props).reduce((ps, [k, v]) => {
-        if (prev.current[k] !== v) {
-          ps[k] = [prev.current[k], v];
-        }
-        return ps;
-      }, {});
-      if (Object.keys(changedProps).length > 0) {
-        console.log("Changed props:", changedProps);
-      }
-      prev.current = props;
-    });
-  }
-
-  let rows = [];
-
-  // create rows and start 'the matrix'
-  for (let r = 0; r < props.rows; r++) {
-    rows.push(r);
-  }
-
-  // initial state
-  const [matrix, setMatrix] = useState(initMatrix);
-  
-  const [xpos, setXPos] = useState(5);
-  const [ypos, setYPos] = useState(5);
+  useKeyPress("c", () => {
+    ClearAll();
+  });
 
   return (
-    <div className="brick-grid" id={props.id} key={props.id}>
-      {rows.map((i) => (
-        <GridRow
-          className="grid-row"
-          id={i}
-          key={i}
-          row={i}
-          onCellClick={cbCellClicked}
-          cells={props.cells}
-          theMatrix={matrix}
-          xpos={xpos}
-          ypos={ypos}
-        ></GridRow>
+    <div className="grid">
+      {matrix.map((row, rowidx) => (
+        <div className="grid-row" key={rowidx}>
+          {row.map((cell, colidx) => (
+            <div
+              key={rowidx + "-" + colidx}
+              className={cell}
+              onClick={(x) => onClicked(colidx, rowidx)}
+            >
+              {colidx},{rowidx}
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
