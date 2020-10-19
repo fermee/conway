@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
+import {useInterval} from './useInterval';
 
-const initialXPos = 5;
-const initialYPos = 5;
+const initialXPos = 0;
+const initialYPos = 0;
 
 const useKeyPress = (key, action) => {
   useEffect(() => {
@@ -15,11 +16,58 @@ const useKeyPress = (key, action) => {
 
 export default function Grid({rows,cols}) {
 
+
   const [Pos, setPos] = useState({x: initialXPos, y: initialYPos});
   const [matrix, setMatrix] = useState([]);
+  const [runTimer, setRunTimer] = useState(false);
+  const [direction, setDirection]= useState("right");
+
+  useInterval(() => {
+    if (runTimer===true)
+    {
+      let newPos = {...Pos};
+      if (direction === "right" && Pos.x < matrix[0].length)
+      {
+        newPos.x+= 1; 
+      }
+
+      if (direction === "right" && newPos.x >= matrix[0].length)
+      {
+        newPos.y+=1;
+        newPos.x=matrix[0].length-1;
+        setDirection("left");
+      }
+
+      if (direction === "left" && Pos.x > 0)
+      {
+        newPos.x-=1; 
+      }
+
+      if (direction === "left" && Pos.x === 0 )
+      {
+        newPos.y+= 1; 
+        setDirection("right");
+      }
+
+      // stay on screen!
+      if (newPos.x < 0) newPos.x=0;
+      if (newPos.x >= matrix[0].length) newPos.x=matrix[0].length-1;
+      if (newPos.y < 0) newPos.y=0;
+      if (newPos.y >= matrix.length) newPos.y = 0;
+
+      absMove(newPos.x, newPos.y);
+    }
+  }, 10);
+
+  useEffect(()=>{
+    console.log('effect is run');
+    ;
+  });
 
   // only do this when rows/cols change (i.e. only first time)
   useEffect(() => {
+    console.log(`init matrix ${rows} ${cols}`);
+
     const initMatrix = new Array(rows)
       .fill(0)
       .map((_, row) =>
@@ -30,50 +78,166 @@ export default function Grid({rows,cols}) {
           )
       );
       setMatrix(initMatrix);
+      setRunTimer(true);
     }, [rows, cols]);
 
 
-    function moveTo(newX, newY) {
+    function checkMatrix()
+    {
+      let count=0;
+      for (let i=0;i<matrix.length-1; i++)
+      {
+        for (let j=0;j<matrix[0].length-1;j++)
+        {
+            if (matrix[i][j]!=='blue')
+              count++;
+        }
+      }
+      if (count>1)
+      {
+        console.log(`***double red!*** ${Pos.x}${Pos.y}`);
+      }
+    }
+    // relative move from current position
+    function relMove(deltaX, deltaY)
+    {
+
+      setRunTimer(false);
+      if (Pos === undefined) {
+          console.log("Pos is undefined!");
+          return;
+      }
+
+      console.log(`moving to: ${Pos.x+deltaX}, ${Pos.y+deltaY}`);
+
+      let newPos={x:Pos.x+deltaX, y:Pos.y+deltaY};
+
+      if (newPos.x === Pos.x && newPos.y === Pos.y) return;
+      
+      console.log(`real move to: ${newPos.x}, ${newPos.y} - clear ${Pos.x} ${Pos.y}`);
+      // clear current pos
+
+      try
+      {
+        if (Pos.y === newPos.y)
+        {
+          let newRow = [...matrix[Pos.y]]; // copy  the row that changed...
+          newRow[Pos.x] = "blue";          // clear the old cell in the row  
+          newRow[newPos.x] = "red";           // set the new cell in the row  
+          let newMatrix = [...matrix];     // replace the row in the matrix
+          newMatrix[Pos.y] = newRow;
+            // both changes are in the same row
+            setMatrix(newMatrix);
+          }
+        else
+        {
+          // not in the same row
+          // remove from old row
+          let oldRow = [...matrix[Pos.y]]; // copy  the row that changed...
+          oldRow[Pos.x] = "blue";          // set the cell in the row  
+          let newMatrix = [...matrix];     // replace the row in the matrix
+          newMatrix[Pos.y] = oldRow;
+         
+          let newRow = [...matrix[newPos.y]]; // copy  the row that changed...
+          newRow[newPos.x] = "red";          // set the cell in the row  
+          newMatrix[newPos.y] = newRow;
+
+          setMatrix(newMatrix);
+
+        }
+
+        setPos(newPos);
+      }
+      catch (error)
+      {
+        alert(`invalid position ${Pos.x} ${Pos.y}`);
+
+      }
+      checkMatrix();
+      setRunTimer(true);
+
+    }
+
+    // Absolute move to given position
+    function absMove(newX, newY) {
+
+      setRunTimer(false);
+      console.log(`moving to: ${newX}, ${newY}`);
 
       let newPos={x:newX, y:newY};
 
+      if (Pos === undefined) {
+          console.log("Pos is undefined!");
+          return;
+      }
       if (newPos.x === Pos.x && newPos.y === Pos.y) return;
-      console.log(`moving to: ${newPos.x}, ${newPos.y}`);
+      
+      console.log(`real move to: ${newPos.x}, ${newPos.y} - clear ${Pos.x} ${Pos.y}`);
       // clear current pos
-      let newRow = [...matrix[Pos.y]]; // copy  the row that changed...
-      newRow[Pos.x] = "green";          // set the cell in the row  
-      let newMatrix = [...matrix];     // replace the row in the matrix
-      newMatrix[Pos.y] = newRow;
 
-      // set new pos
-      newRow = [...newMatrix[newPos.y]];
-      newRow[newPos.x] = "red";
-      newMatrix = [...newMatrix];
-      newMatrix[newPos.y] = newRow;
+      try
+      {
+        if (Pos.y === newPos.y)
+        {
+          console.log("clear and set on same row!");
+          let newRow = [...matrix[Pos.y]]; // copy  the row that changed...
+          console.log(`Clear: ${Pos.x}${Pos.y} Set: ${newPos.x}${newPos.y}`);
 
-      setPos(newPos);
-      setMatrix(newMatrix);
+          newRow[Pos.x] = "blue";          // clear the old cell in the row  
+          newRow[newPos.x] = "red";           // set the new cell in the row  
+          let newMatrix = [...matrix];     // replace the row in the matrix
+          newMatrix[Pos.y] = newRow;
+            // both changes are in the same row
+          setMatrix(newMatrix);
+
+        }
+        else
+        {
+          // not in the same row
+          // remove from old row
+          let oldRow = [...matrix[Pos.y]]; // copy  the row that changed...
+          oldRow[Pos.x] = "blue";          // set the cell in the row  
+          let newMatrix = [...matrix];     // replace the row in the matrix
+          newMatrix[Pos.y] = oldRow;
+          
+          let newRow = [...matrix[newPos.y]]; // copy  the row that changed...
+          newRow[newPos.x] = "red";          // set the cell in the row  
+          newMatrix[newPos.y] = newRow;
+          setMatrix(newMatrix);
+        }
+
+        setPos(newPos);
+      }
+      catch (error)
+      {
+        alert(`invalid position ${Pos.x} ${Pos.y}`);
+
+      }
+
+      checkMatrix();
+      setRunTimer(true);
+
     }
   
   const onClicked = (row,col) => {
     console.log(`onClicked: ${Pos.x},${Pos.y}`);
-    moveTo(row, col);
+    absMove(row, col);
   };
 
   useKeyPress("j", () => {
-    if (Pos.x > 0) moveTo(Pos.x - 1, Pos.y);
+    if (Pos.x > 0) relMove(-1, 0);
   });
 
   useKeyPress("i", () => {
-    if (Pos.y > 0) moveTo(Pos.x, Pos.y - 1);
+    if (Pos.y > 0) relMove(0, -1);
   });
 
   useKeyPress("k", () => {
-    if (Pos.x < cols - 1) moveTo(Pos.x + 1, Pos.y);
+    if (Pos.x < cols - 1) relMove(+1, 0);
   });
 
   useKeyPress("m", () => {
-    if (Pos.y < rows - 1) moveTo(Pos.x, Pos.y + 1);
+    if (Pos.y < rows - 1) relMove(0, 1);
   });
 
   const ClearAll = () => {
@@ -92,6 +256,12 @@ export default function Grid({rows,cols}) {
   useKeyPress("c", () => {
     ClearAll();
   });
+
+  useKeyPress("r", () => {
+    absMove(0,0);
+  });
+
+
 
   return (
     <div className="grid">

@@ -16,7 +16,7 @@ function App() {
   return (
     <div className="App">
       <header className="playfield">
-        <Grid rows="20" cells="50" cellStyle="blue"></Grid>
+        <Grid rows={20} cols={50} cellStyle="blue"></Grid>
       </header>
     </div>
   );
