@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+
+// Dan Abramov's take on an Interval Hook...
+// See https://overreacted.io/making-setinterval-declarative-with-react-hooks/
+// the point is that the callback(ref) is modifiable whereas the effect is static
+
 export function useInterval(callback, delay) {
   const savedCallback = useRef();
 
-  console.log(savedCallback);
-  
   // Remember the latest callback.
   useEffect(() => {
     savedCallback.current = callback;
@@ -13,7 +16,6 @@ export function useInterval(callback, delay) {
   // Set up the interval.
   useEffect(() => {
     function tick() {
-      console.log("in useInterval");
       savedCallback.current();
     }
     if (delay !== null) {
