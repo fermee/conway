@@ -11,11 +11,11 @@ Goals of exercise:
 - using CSS to change appearance
 
 To do:
-- ability to edit and created initial board (currently always random)
+- ability to edit and create initial board (currently always random)
 - separate "action" from background: this could be used to define objects like a glider and move/copy them with the mouse.
 - save/load edited or calculate board
 - improve speed / memory usage
-- when initializing, the number of live cells still displayed as 0
+- when initializing, the number of live cells are still displayed as 0
 - more responsive layout: change dimensions of the grid based on viewport/device
 
 This runs "ok" in development mode but really needs to be build for production to see a reasonable speed
